@@ -76,7 +76,17 @@ def draw_cards_images(c, images, card, sizes, diameter, margin, x, y):
 
     return c
 
-def create_sheets(filename, order, images, sizes=[1, 2, 3, 4], seed=42, page_size='A4', diameter=80, margin=5):
+def draw_cards_bckgnd(c, image_bckgnd, diameter, margin, x, y):
+    """Function called to draw a card's back ground image."""
+
+    # draw the image
+    img = ImageReader(image_bckgnd)
+    width, height = img.getSize()
+    c.drawImage(img, x+diameter/6, y+diameter/6, width/2, height/2, 'auto')
+
+    return c
+
+def create_sheets(filename, order, images, backside_image, sizes=[1], seed=42, page_size='A4', diameter=100, margin=2):
     """Create the PDF with cards.
     
     :param filename: filename of the PDF
@@ -116,7 +126,8 @@ def create_sheets(filename, order, images, sizes=[1, 2, 3, 4], seed=42, page_siz
     cards, num_pictures = create_cards(order)
 
     # specifications of the sheet
-    c = canvas.Canvas(filename, pagesize=page_size)
+    c = canvas.Canvas(filename+".pdf", pagesize=page_size)              # front side
+    c_bs = canvas.Canvas(filename+"_backside.pdf", pagesize=page_size)   # backside
     width, height = page_size
 
     # calculate the number of columns and rows
@@ -131,13 +142,19 @@ def create_sheets(filename, order, images, sizes=[1, 2, 3, 4], seed=42, page_siz
     x = [x_space + i * (diameter + x_space) for i in range(columns)]
     y = [y_space + i * (diameter + y_space) for i in range(rows)]
     y = y[::-1]
-
-    # add cards
+    
+    # add cards to front side
     for i, card in enumerate(cards):
         if i != 0 and i % (rows * columns) == 0:
             c.showPage()  # add a new page
         renderPDF.draw(draw_cards(diameter, border_width=1, border_color=colors.black), c, x[i % columns], y[(i // columns) % rows])
         c = draw_cards_images(c, images, card, sizes, diameter, margin, x[i % columns], y[(i // columns) % rows])
-
-    # save the canvas
     c.save()
+
+    # add images to back side
+    for i, card in enumerate(cards):
+        if i != 0 and i % (rows * columns) == 0:
+            c_bs.showPage()  # add a new page
+        renderPDF.draw(draw_cards(diameter, border_width=1, border_color=colors.black), c_bs, x[(len(cards)-i) % columns], y[(i // columns) % rows])
+        c_bs = draw_cards_bckgnd(c_bs, backside_image, diameter, margin, x[(len(cards)-i) % columns], y[(i // columns) % rows])
+    c_bs.save()
